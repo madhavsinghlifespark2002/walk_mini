@@ -1,11 +1,9 @@
 package com.lifesparktech.lsphysio.android.pages
 import android.annotation.SuppressLint
-import android.content.Context
 import android.os.Build
 import android.os.CountDownTimer
 import android.widget.Toast
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -74,6 +72,7 @@ object PeripheralManager {
     var charWrite: Characteristic? = null
     var charRead: Characteristic? = null
     lateinit var mainScope: CoroutineScope
+    var Command: String = "0000000"
 }
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -180,7 +179,7 @@ fun DeviceConnectionScreen(navcontroller: NavController) {
                                 Card(
                                     modifier = Modifier
                                         .padding(12.dp)
-                                        .width(300.dp)
+                                        .width(320.dp)
                                         .height(100.dp),
                                     colors = CardDefaults.cardColors(containerColor = Color.White)
                                 ) {
@@ -234,3 +233,4 @@ fun DeviceConnectionScreen(navcontroller: NavController) {
         }
     }
 }
+// po

@@ -92,14 +92,6 @@ fun ConnectDeviced(
             val peripheralcon = PeripheralManager.peripheral
             val charWritecon = PeripheralManager.charWrite
             println("peripheralcon value: ${peripheralcon?.name} and charWritecon value: ${charWritecon?.serviceUuid}")
-//            if (peripheralcon != null && charWritecon != null) {
-//                try {
-//                    var command = "1111111"
-//                    peripheral.write(charWrite, command.encodeToByteArray())
-//                } catch (e: Exception) {
-//                    println("Error writing command: ${e.message}")
-//                }
-//            }
             navController.navigate("DeviceControlScreen")
         } catch (e: ConnectionLostException) {
             println("Connection lost: ${e.message}")

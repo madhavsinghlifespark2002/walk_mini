@@ -1,6 +1,5 @@
 package com.lifespark.walkmini.Pages
 
-import android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,14 +26,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Switch
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import com.lifesparktech.lsphysio.android.pages.PeripheralManager
+import com.lifesparktech.lsphysio.android.pages.PeripheralManager.Command
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
 fun DeviceControlScreen(navController: NavController){
     val toggleStates = remember { mutableStateListOf(*Array(7) { false }) }
-    val magnitudes = remember { mutableStateListOf(*Array(7) { 1 }) } // Default magnitude for each motor is 1
+    val magnitudes = remember { mutableStateListOf(*Array(7) { 1 }) }
+//    var command by remember { mutableStateOf("1111111") }
+
     Column(
         modifier = Modifier.background(color = Color.White)
             .fillMaxSize()
@@ -61,7 +66,14 @@ fun DeviceControlScreen(navController: NavController){
                         checked = toggleStates[index],
                         onCheckedChange = { isChecked ->
                             toggleStates[index] = isChecked
-                            sendBinaryCommand(toggleStates, mainScope)
+                            sendBinaryCommand(toggleStates)
+                            println("isChecked : $isChecked")
+                            if (isChecked) {
+                                sendMagnitudeCommand(index, 1)
+                            }
+                            else{
+                                sendMagnitudeCommand(index, 0)
+                            }
                         }
                     )
                 }
@@ -77,7 +89,11 @@ fun DeviceControlScreen(navController: NavController){
                                 selected = magnitudes[index] == magnitude,
                                 onClick = {
                                     magnitudes[index] = magnitude
-                                    sendMagnitudeCommand(index, magnitude, mainScope)
+                                    if (!toggleStates[index]) {
+                                        toggleStates[index] = true
+                                        sendBinaryCommand(toggleStates)
+                                    }
+                                    sendMagnitudeCommand(index, magnitude)
                                 }
                             )
                             Text(text = magnitude.toString(), fontSize = 16.sp, color = Color.Black)
@@ -91,29 +107,31 @@ fun DeviceControlScreen(navController: NavController){
         }
     }
 }
-fun sendBinaryCommand(toggleStates: List<Boolean>, mainScope: CoroutineScope) {
+fun sendBinaryCommand(toggleStates: List<Boolean>) {
     val binaryString = toggleStates.joinToString("") { if (it) "1" else "0" }
     println("this is binaryString: $binaryString")
     mainScope.launch {
         writeCommand(binaryString)
     }
 }
-fun sendMagnitudeCommand(motorIndex: Int, magnitude: Int, mainScope: CoroutineScope) {
-    val command = buildCommand(motorIndex, magnitude)
-    println("this is command: $command")
+fun sendMagnitudeCommand(motorIndex: Int, magnitude: Int): String {
+    Command = buildCommand(motorIndex, magnitude)
+    println("this is command: $Command")
     mainScope.launch {
-        writeCommand(command)
+        writeCommand(Command)
     }
+    return Command
 }
 fun buildCommand(motorIndex: Int, magnitude: Int): String {
-    if (motorIndex !in 0..7) {
+    if (motorIndex !in 0..6) {
         throw IllegalArgumentException("Motor index must be between 0 and 6")
     }
-    val command = CharArray(7) { '1' }
-    val validMagnitudes = listOf(1, 2, 3, 4)
+    val validMagnitudes = listOf(0, 1, 2, 3, 4)
     if (magnitude !in validMagnitudes) {
-        throw IllegalArgumentException("Magnitude must be one of the following: ${validMagnitudes.joinToString()}")
+        throw IllegalArgumentException("Magnitude must be one of: ${validMagnitudes.joinToString()}")
     }
-    command[motorIndex] = (magnitude + '0'.toInt()).toChar()
-    return String(command)
+    val commandArray = PeripheralManager.Command.toCharArray()
+    commandArray[motorIndex] = ('0' + magnitude)
+    println("this is commandArray: ${commandArray.toString()}")
+    return String(commandArray)
 }
