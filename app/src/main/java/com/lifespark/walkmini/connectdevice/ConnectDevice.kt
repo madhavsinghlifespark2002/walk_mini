@@ -92,7 +92,7 @@ fun ConnectDeviced(
             val peripheralcon = PeripheralManager.peripheral
             val charWritecon = PeripheralManager.charWrite
             println("peripheralcon value: ${peripheralcon?.name} and charWritecon value: ${charWritecon?.serviceUuid}")
-            navController.navigate("DeviceControlScreen")
+            navController.navigate("ModeDevice")
         } catch (e: ConnectionLostException) {
             println("Connection lost: ${e.message}")
             Toast.makeText(context, "Failed to connect", Toast.LENGTH_LONG).show()

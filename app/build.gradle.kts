@@ -12,9 +12,8 @@ android {
         applicationId = "com.lifespark.walkmini"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
-
+        versionCode = 2
+        versionName = "1.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -55,4 +54,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation("com.juul.kable:core:0.32.0")
     implementation("androidx.navigation:navigation-compose:2.8.2")
+    implementation("sh.calvin.reorderable:reorderable:2.4.3")
+    implementation("org.burnoutcrew.composereorderable:reorderable:0.9.6")
+
 }

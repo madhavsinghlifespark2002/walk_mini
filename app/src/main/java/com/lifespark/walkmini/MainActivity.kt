@@ -26,6 +26,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.lifespark.walkmini.Pages.DeviceControlScreen
+import com.lifespark.walkmini.Pages.ModeDevice
+import com.lifespark.walkmini.Pages.PatternControl
 import com.lifespark.walkmini.ui.theme.WalkminiTheme
 import com.lifesparktech.lsphysio.android.pages.DeviceConnectionScreen
 import kotlinx.coroutines.launch
@@ -55,11 +57,11 @@ class MainActivity : ComponentActivity() {
         requestBluetoothPermissions()
         requestLocationPermissions()
         setContent {
-            WalkminiTheme {
+           // WalkminiTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     AppNavigation()
                 }
-            }
+           // }
         }
     }
     internal fun requestBluetoothPermissions() {
@@ -137,12 +139,18 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "device_connection") {
+    NavHost(navController = navController, startDestination = "PatternDevice") {
         composable("device_connection") {
             DeviceConnectionScreen(navController)
         }
         composable("DeviceControlScreen") {
             DeviceControlScreen(navController)
+        }
+        composable("ModeDevice") {
+            ModeDevice(navController)
+        }
+        composable("PatternDevice") {
+            PatternControl()
         }
     }
 }

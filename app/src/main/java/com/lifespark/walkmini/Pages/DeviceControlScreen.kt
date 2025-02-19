@@ -26,13 +26,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Switch
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import com.lifesparktech.lsphysio.android.pages.PeripheralManager
 import com.lifesparktech.lsphysio.android.pages.PeripheralManager.Command
-import kotlinx.coroutines.CoroutineScope
 
 @Composable
 fun DeviceControlScreen(navController: NavController){
@@ -78,7 +74,12 @@ fun DeviceControlScreen(navController: NavController){
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "Select Magnitude", fontSize = 18.sp, color = Color.Black, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Select Magnitude",
+                    fontSize = 18.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
