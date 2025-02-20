@@ -26,6 +26,7 @@ import com.lifesparktech.lsphysio.android.pages.PeripheralManager.mainScope
 import kotlinx.coroutines.launch
 import org.burnoutcrew.reorderable.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.res.painterResource
 import com.lifespark.walkmini.R
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +35,7 @@ fun PatternControl() {
     val initialItems = List(7) { "Motor ${it + 1}" }
     var items by remember { mutableStateOf(initialItems) }
     val magnitudes = remember { mutableStateListOf(*Array(items.size) { 1 }) }
-    val timers = remember { mutableStateListOf<Int?>(null, null, null, null, null, null, null) } // Initial timers set to null
+    var timers = remember { mutableStateListOf<Int?>(null, null, null, null, null, null, null) } // Initial timers set to null
     val timersend = remember { mutableStateListOf<Int?>(null, null, null, null, null, null, null) } // Initial timers set to null
     var selectedItems by remember { mutableStateOf(setOf<String>()) }
     val focusManager = LocalFocusManager.current
@@ -45,19 +46,43 @@ fun PatternControl() {
     var isLoopEntered by remember {mutableStateOf(false)}
     val interactionSource = remember { MutableInteractionSource() }
     var looptext by remember { mutableStateOf("") }
+//    val reorderState = rememberReorderableLazyListState(
+//        onMove = { from, to ->
+//            items = items.toMutableList().apply {
+//                add(to.index, removeAt(from.index))
+//            }
+//            magnitudes.add(to.index, magnitudes.removeAt(from.index))
+//            if (from.index < timers.size && to.index < timers.size && from.index < timersend.size && to.index < timersend.size) {
+//                timers.add(to.index, timers.removeAt(from.index))
+//                timersend.add(to.index, timersend.removeAt(from.index))
+//            }
+//        }
+//    )
     val reorderState = rememberReorderableLazyListState(
         onMove = { from, to ->
             items = items.toMutableList().apply {
                 add(to.index, removeAt(from.index))
             }
-            magnitudes.add(to.index, magnitudes.removeAt(from.index))
-            if (from.index < timers.size && to.index < timers.size && from.index < timersend.size && to.index < timersend.size) {
-                timers.add(to.index, timers.removeAt(from.index))
-                timersend.add(to.index, timersend.removeAt(from.index))
+
+            magnitudes.apply {
+                if (from.index in indices && to.index in indices) {
+                    add(to.index, removeAt(from.index))
+                }
+            }
+
+            timers.apply {
+                if (from.index in indices && to.index in indices) {
+                    add(to.index, removeAt(from.index))
+                }
+            }
+
+            timersend.apply {
+                if (from.index in indices && to.index in indices) {
+                    add(to.index, removeAt(from.index))
+                }
             }
         }
     )
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -107,7 +132,10 @@ fun PatternControl() {
                     keyboardActions = KeyboardActions(
                         onDone = {
                             focusManager.clearFocus()
-                            isLoopEntered = true} // Remove focus when "Done" is pressed
+                            if(looptext.isNotEmpty()){
+                                isLoopEntered = true
+                            }
+                        }
                     ),
                     colors =  TextFieldDefaults.textFieldColors(
                         containerColor = Color(0xFFf2f4f5),
@@ -167,7 +195,7 @@ fun PatternControl() {
                                             items = items.filter { it != item }
                                             if (index < timers.size) timers.removeAt(index)
                                             if (index < timersend.size) timersend.removeAt(index)
-                                            magnitudes[index] = 0
+                                            magnitudes.removeAt(index)
                                         },
                                         shape = RoundedCornerShape(8.dp),
                                         colors = ButtonDefaults.buttonColors(
@@ -219,19 +247,18 @@ fun PatternControl() {
                                             OutlinedTextField(
                                                 value = timers.getOrElse(index) { null }?.toString() ?: "",
                                                 onValueChange = { newValue ->
+                                                    val loopMax = looptext.toIntOrNull() ?: Int.MAX_VALUE
                                                     if (newValue.all { it.isDigit() } && newValue.length <= 3) {
                                                         val newTimer = newValue.toIntOrNull()
-                                                        if (newTimer != null && newTimer > 0) {
-                                                            if (index < timers.size) {
-                                                                timers[index] = newTimer
-                                                            } else {
-                                                                while (timers.size <= index) {
-                                                                    timers.add(null) // Fill missing indices with null values
-                                                                }
-                                                                timers[index] = newTimer
+                                                        if (newTimer != null && newTimer in 1..loopMax) {
+                                                            while (index >= timers.size) {  // Ensure list is large enough
+                                                                timers.add(null)
                                                             }
+                                                            timers[index] = newTimer  // ✅ Direct modification
                                                         } else if (newValue.isEmpty()) {
-                                                            timers[index] = null // Allow clearing the timer
+                                                            if (index < timers.size) {
+                                                                timers[index] = null  // ✅ Allow clearing
+                                                            }
                                                         }
                                                     }
                                                 },
@@ -267,19 +294,20 @@ fun PatternControl() {
                                             OutlinedTextField(
                                                 value = timersend.getOrElse(index) { null }?.toString() ?: "",
                                                 onValueChange = { newValue ->
+                                                    val loopMax = looptext.toIntOrNull() ?: Int.MAX_VALUE
                                                     if (newValue.all { it.isDigit() } && newValue.length <= 3) {
-                                                        val newTimer = newValue.toIntOrNull()
-                                                        if (newTimer != null && newTimer > 0) {
-                                                            if (index < timersend.size) {
-                                                                timersend[index] = newTimer
-                                                            } else {
-                                                                while (timersend.size <= index) {
-                                                                    timersend.add(null) // Fill missing indices with null values
-                                                                }
-                                                                timersend[index] = newTimer
+                                                        val newTimerSend = newValue.toIntOrNull()
+                                                        val startTime = timers.getOrElse(index) { null } ?: 0  // Default Start to 0 if null
+
+                                                      if (newTimerSend != null && newTimerSend <= loopMax) {
+                                                            while (index >= timersend.size) {  // Ensure list has enough indices
+                                                                timersend.add(null)
                                                             }
+                                                            timersend[index] = newTimerSend  // ✅ Direct modification
                                                         } else if (newValue.isEmpty()) {
-                                                            timersend[index] = null // Allow clearing the timer
+                                                            if (index < timersend.size) {
+                                                                timersend[index] = null  // ✅ Allow clearing
+                                                            }
                                                         }
                                                     }
                                                 },
@@ -291,7 +319,7 @@ fun PatternControl() {
                                                 keyboardActions = KeyboardActions(
                                                     onDone = { focusManager.clearFocus() } // Remove focus when "Done" is pressed
                                                 ),
-                                                colors =  TextFieldDefaults.textFieldColors(
+                                                colors = TextFieldDefaults.textFieldColors(
                                                     containerColor = Color(0xFFf2f4f5),
                                                     focusedIndicatorColor = Color.Transparent,
                                                     unfocusedIndicatorColor = Color.Transparent
@@ -315,20 +343,26 @@ fun PatternControl() {
             }
             item{
                 if (showResults) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        "Ordered Pattern:",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                    results.forEach { result ->
-                        Text(
-                            result,
-                            fontSize = 14.sp,
-                            color = Color.Black,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
+                    Card(
+                        Modifier.fillMaxWidth().padding(12.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)){
+                            Text(
+                                "Ordered Pattern:",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            results.forEach { result ->
+                                Text(
+                                    result,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                        }
                     }
                 }
                 Row(
@@ -347,22 +381,26 @@ fun PatternControl() {
                                 results = items.mapIndexed { index, motor ->
                                     val magnitude = magnitudes.getOrNull(index) ?: 1
                                     val delay = timers.getOrNull(index) ?: 0
+                                    val delayStop = timersend.getOrNull(index) ?: 0
+                                    println("this is delayStop: ${delayStop}")
                                     val motorIndex = motor.split(" ").last().toIntOrNull()?.minus(1) ?: return@mapIndexed ""
                                     val motorActivation = CharArray(7) { '0' }
                                     motorActivation[motorIndex] = '1'
                                     val magnitudeString = CharArray(7) { '0' }
                                     magnitudeString[motorIndex] = magnitude.digitToChar()
-                                    commandList.add(String(motorActivation))
-                                    commandList.add(String(magnitudeString))
-                                    if (delay > 0) {
-                                        commandList.add("WAIT $delay")
-                                    }
-                                    "$motor - $magnitude mag.\n$delay second${if (delay == 1) "" else "s"}"
+                                    val startCommand = String(motorActivation)
+                                    val magnitudeCommand = String(magnitudeString)
+                                    commandList.add("WAIT $delay")
+                                    commandList.add(startCommand)
+                                    commandList.add(magnitudeCommand)
+                                    commandList.add("WAIT ${delayStop - delay}")
+                                    //commandList.add(startCommand)
+                                    "$motor - $magnitude mag.\nStart: $delay seconds and Stop: $delayStop seconds"
                                 }
-                                mainScope.launch {
-                                    while (isRunning) { // Loop until stopped
+                                scope.launch {
+                                    while (isRunning) {
                                         for (command in commandList) {
-                                            if (!isRunning) break // Exit if stopped
+                                            if (!isRunning) break
                                             if (command.startsWith("WAIT")) {
                                                 val delayTime = command.split(" ")[1].toLongOrNull()
                                                 if (delayTime != null) {
@@ -370,7 +408,7 @@ fun PatternControl() {
                                                 }
                                             } else {
                                                 println("Sending command: $command")
-                                                writeCommand(command)
+                                              //  writeCommand(command)
                                             }
                                         }
                                     }
