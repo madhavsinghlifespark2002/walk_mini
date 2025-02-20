@@ -18,6 +18,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lifespark.walkmini.connectdevice.writeCommand
+import com.lifesparktech.lsphysio.android.pages.PeripheralManager.mainScope
+import kotlinx.coroutines.launch
 import org.burnoutcrew.reorderable.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,7 +31,11 @@ fun PatternControl() {
     val magnitudes = remember { mutableStateListOf(*Array(items.size) { 1 }) }
     val timers = remember { mutableStateListOf<Int?>(null, null, null, null, null, null, null) } // Initial timers set to null
     var selectedItems by remember { mutableStateOf(setOf<String>()) }
-    val focusManager = LocalFocusManager.current // Manages focus
+    val focusManager = LocalFocusManager.current
+    var showResults by remember { mutableStateOf(false) }
+    var results by remember { mutableStateOf<List<String>>(emptyList()) }
+    val scope = rememberCoroutineScope()
+    var isRunning by remember { mutableStateOf(false) }
     val reorderState = rememberReorderableLazyListState(
         onMove = { from, to ->
             items = items.toMutableList().apply {
@@ -55,6 +62,7 @@ fun PatternControl() {
         LazyColumn(
             modifier = Modifier
                 .reorderable(reorderState)
+                .imePadding()
                 .detectReorderAfterLongPress(reorderState),
             state = reorderState.listState
         ) {
@@ -95,6 +103,7 @@ fun PatternControl() {
                                     onClick = {
                                         items = items.filter { it != item }
                                         if (index < timers.size) timers.removeAt(index)
+                                        magnitudes[index] = 0
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                                 ) {
@@ -128,7 +137,7 @@ fun PatternControl() {
                 }
 
                 // ✅ Timer Section (Between Motors) - Using TextField
-                if (index < items.size - 1) {
+                if (index < items.size) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -168,6 +177,75 @@ fun PatternControl() {
                         )
                     }
                 }
+            }
+            item{
+                if (showResults) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "Ordered Pattern:",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    results.forEach { result ->
+                        Text(
+                            result,
+                            fontSize = 14.sp,
+                            color = Color.Black,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+                Button(
+                    onClick = {
+                        if (isRunning) {
+                            isRunning = false // Stop the loop
+                        } else {
+                            isRunning = true
+                            showResults = true
+                            val commandList = mutableListOf<String>()
+                            results = items.mapIndexed { index, motor ->
+                                val magnitude = magnitudes.getOrNull(index) ?: 1
+                                val delay = timers.getOrNull(index) ?: 0
+                                val motorIndex = motor.split(" ").last().toIntOrNull()?.minus(1) ?: return@mapIndexed ""
+                                val motorActivation = CharArray(7) { '0' }
+                                motorActivation[motorIndex] = '1'
+                                val magnitudeString = CharArray(7) { '0' }
+                                magnitudeString[motorIndex] = magnitude.digitToChar()
+                                commandList.add(String(motorActivation))
+                                commandList.add(String(magnitudeString))
+                                if (delay > 0) {
+                                    commandList.add("WAIT $delay")
+                                }
+                                "$motor - $magnitude mag.\n$delay second${if (delay == 1) "" else "s"}"
+                            }
+                            mainScope.launch {
+                                while (isRunning) { // Loop until stopped
+                                    for (command in commandList) {
+                                        if (!isRunning) break // Exit if stopped
+                                        if (command.startsWith("WAIT")) {
+                                            val delayTime = command.split(" ")[1].toLongOrNull()
+                                            if (delayTime != null) {
+                                                kotlinx.coroutines.delay(delayTime * 1000) // Just wait, don't send "WAIT"
+                                            }
+                                        } else {
+                                            println("Sending command: $command")
+                                            writeCommand(command)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Blue)
+                ) {
+                    Text(if (isRunning) "Stop" else "Start", color = Color.White)
+                }
+                Spacer(modifier = Modifier.height(18.dp))
             }
         }
     }
