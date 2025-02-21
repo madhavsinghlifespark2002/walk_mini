@@ -51,23 +51,8 @@ fun PatternControl() {
     val motorActivation = remember { mutableStateOf(CharArray(7) { '0' }) }
     val magnitudeString = remember { mutableStateOf(CharArray(7) { '0' }) }
 
-//    val reorderState = rememberReorderableLazyListState(
-//        onMove = { from, to ->
-//            items = items.toMutableList().apply {
-//                add(to.index, removeAt(from.index))
-//            }
-//            magnitudes.add(to.index, magnitudes.removeAt(from.index))
-//            if (from.index < timers.size && to.index < timers.size && from.index < timersend.size && to.index < timersend.size) {
-//                timers.add(to.index, timers.removeAt(from.index))
-//                timersend.add(to.index, timersend.removeAt(from.index))
-//            }
-//        }
-//    )
     val reorderState = rememberReorderableLazyListState(
         onMove = { from, to ->
-//            items = items.toMutableList().apply {
-//                add(to.index, removeAt(from.index))
-//            }
             items =  items.toMutableList().apply {
                 if (from.index in indices && to.index in indices) {
                     add(to.index, removeAt(from.index))
@@ -132,7 +117,14 @@ fun PatternControl() {
                     onValueChange = { newValue ->
                         if (newValue.all { it.isDigit() } && newValue.length <= 3) {
                             looptext = newValue
+                            if(looptext.isNotEmpty()){
+                                isLoopEntered = true
+                            }
+                            else{
+                                isLoopEntered = false
+                            }
                         }
+
                     },
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Done,
@@ -141,9 +133,6 @@ fun PatternControl() {
                     keyboardActions = KeyboardActions(
                         onDone = {
                             focusManager.clearFocus()
-                            if(looptext.isNotEmpty()){
-                                isLoopEntered = true
-                            }
                         }
                     ),
                     colors =  TextFieldDefaults.textFieldColors(
@@ -151,11 +140,11 @@ fun PatternControl() {
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
                     ),
-                    readOnly = isLoopEntered,
+                   // readOnly = isLoopEntered,
                     placeholder = { Text("Seconds") },
                     modifier = Modifier
 //                        .fillMaxWidth(0.45f)
-                        .focusable(enabled = !isLoopEntered, interactionSource = interactionSource), // Prevent focus when readOnly
+                        .focusable(enabled = !isLoopEntered, interactionSource = interactionSource),
                     singleLine = true
                 )
             }
@@ -271,7 +260,7 @@ fun PatternControl() {
                                                         }
                                                     }
                                                 },
-                                                readOnly = !isLoopEntered,
+                                              //  readOnly = !isLoopEntered,
                                                 keyboardOptions = KeyboardOptions.Default.copy(
                                                     imeAction = ImeAction.Done,
                                                     keyboardType = KeyboardType.Number
@@ -287,7 +276,7 @@ fun PatternControl() {
                                                 placeholder = { Text("Seconds") },
                                                 modifier = Modifier
                                                     .fillMaxWidth(0.45f)
-                                                    .focusable(enabled = isLoopEntered, interactionSource = interactionSource), // Prevent focus when readOnly
+                                                    .focusable(enabled = isLoopEntered, interactionSource = interactionSource),
                                                 singleLine = true
                                             )
                                         }
@@ -320,7 +309,7 @@ fun PatternControl() {
                                                         }
                                                     }
                                                 },
-                                                readOnly = !isLoopEntered,
+                                              //  readOnly = !isLoopEntered,
                                                 keyboardOptions = KeyboardOptions.Default.copy(
                                                     imeAction = ImeAction.Done,
                                                     keyboardType = KeyboardType.Number
@@ -336,11 +325,23 @@ fun PatternControl() {
                                                 placeholder = { Text("Seconds") },
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .focusable(enabled = isLoopEntered, interactionSource = interactionSource), // Prevent focus when readOnly
+                                                    .focusable(enabled = isLoopEntered, interactionSource = interactionSource),
                                                 singleLine = true
                                             )
                                         }
                                     }
+                                }
+                                if ((timers.getOrElse(index) { null } ?: 0) > (timersend.getOrElse(index) { null } ?: Int.MAX_VALUE)) {
+                                    isLoopEntered = false
+                                    Text(
+                                        text = "Error: Start time cannot be greater than end time",
+                                        color = Color.Red,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                else{
+                                    isLoopEntered = true
                                 }
                             }
                         }

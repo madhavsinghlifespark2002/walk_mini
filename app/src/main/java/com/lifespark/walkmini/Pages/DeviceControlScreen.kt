@@ -43,7 +43,11 @@ fun DeviceControlScreen(navController: NavController){
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Mode Selection", fontSize = 20.sp, color = Color.Black, modifier = Modifier.padding(top = 12.dp), fontWeight = FontWeight.Bold)
+        Text(text = "Mode Selection",
+            fontSize = 20.sp,
+            color = Color.Black,
+            modifier = Modifier.padding(top = 12.dp),
+            fontWeight = FontWeight.Bold)
 
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
@@ -62,10 +66,11 @@ fun DeviceControlScreen(navController: NavController){
                         checked = toggleStates[index],
                         onCheckedChange = { isChecked ->
                             toggleStates[index] = isChecked
-                            sendBinaryCommand(toggleStates)
+
+                           // sendMagnitudeCommand(index, magnitudes[index])
                             println("isChecked : $isChecked")
                             if (isChecked) {
-                                sendMagnitudeCommand(index, 1)
+                                sendMagnitudeCommand(index, magnitudes[index])
                             }
                             else{
                                 sendMagnitudeCommand(index, 0)
@@ -117,7 +122,6 @@ fun sendBinaryCommand(toggleStates: List<Boolean>) {
 }
 fun sendMagnitudeCommand(motorIndex: Int, magnitude: Int): String {
     Command = buildCommand(motorIndex, magnitude)
-    println("this is command: $Command")
     mainScope.launch {
         writeCommand(Command)
     }
@@ -133,6 +137,5 @@ fun buildCommand(motorIndex: Int, magnitude: Int): String {
     }
     val commandArray = PeripheralManager.Command.toCharArray()
     commandArray[motorIndex] = ('0' + magnitude)
-    println("this is commandArray: ${commandArray.toString()}")
     return String(commandArray)
 }
