@@ -29,14 +29,16 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.res.painterResource
 import com.lifespark.walkmini.R
+import kotlinx.coroutines.delay
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatternControl() {
     val initialItems = List(7) { "Motor ${it + 1}" }
     var items by remember { mutableStateOf(initialItems) }
     val magnitudes = remember { mutableStateListOf(*Array(items.size) { 1 }) }
-    var timers = remember { mutableStateListOf<Int?>(null, null, null, null, null, null, null) } // Initial timers set to null
-    val timersend = remember { mutableStateListOf<Int?>(null, null, null, null, null, null, null) } // Initial timers set to null
+    val timers = remember { mutableStateListOf<Int?>(null, null, null, null, null, null, null) }
+    val timersend = remember { mutableStateListOf<Int?>(null, null, null, null, null, null, null) }
     var selectedItems by remember { mutableStateOf(setOf<String>()) }
     val focusManager = LocalFocusManager.current
     var showResults by remember { mutableStateOf(false) }
@@ -46,6 +48,9 @@ fun PatternControl() {
     var isLoopEntered by remember {mutableStateOf(false)}
     val interactionSource = remember { MutableInteractionSource() }
     var looptext by remember { mutableStateOf("") }
+    val motorActivation = remember { mutableStateOf(CharArray(7) { '0' }) }
+    val magnitudeString = remember { mutableStateOf(CharArray(7) { '0' }) }
+
 //    val reorderState = rememberReorderableLazyListState(
 //        onMove = { from, to ->
 //            items = items.toMutableList().apply {
@@ -60,10 +65,14 @@ fun PatternControl() {
 //    )
     val reorderState = rememberReorderableLazyListState(
         onMove = { from, to ->
-            items = items.toMutableList().apply {
-                add(to.index, removeAt(from.index))
+//            items = items.toMutableList().apply {
+//                add(to.index, removeAt(from.index))
+//            }
+            items =  items.toMutableList().apply {
+                if (from.index in indices && to.index in indices) {
+                    add(to.index, removeAt(from.index))
+                }
             }
-
             magnitudes.apply {
                 if (from.index in indices && to.index in indices) {
                     add(to.index, removeAt(from.index))
@@ -375,41 +384,45 @@ fun PatternControl() {
                             if (isRunning) {
                                 isRunning = false // Stop the loop
                             } else {
-                                isRunning = true
-                                showResults = true
-                                val commandList = mutableListOf<String>()
-                                results = items.mapIndexed { index, motor ->
-                                    val magnitude = magnitudes.getOrNull(index) ?: 1
-                                    val delay = timers.getOrNull(index) ?: 0
-                                    val delayStop = timersend.getOrNull(index) ?: 0
-                                    println("this is delayStop: ${delayStop}")
-                                    val motorIndex = motor.split(" ").last().toIntOrNull()?.minus(1) ?: return@mapIndexed ""
-                                    val motorActivation = CharArray(7) { '0' }
-                                    motorActivation[motorIndex] = '1'
-                                    val magnitudeString = CharArray(7) { '0' }
-                                    magnitudeString[motorIndex] = magnitude.digitToChar()
-                                    val startCommand = String(motorActivation)
-                                    val magnitudeCommand = String(magnitudeString)
-                                    commandList.add("WAIT $delay")
-                                    commandList.add(startCommand)
-                                    commandList.add(magnitudeCommand)
-                                    commandList.add("WAIT ${delayStop - delay}")
-                                    //commandList.add(startCommand)
-                                    "$motor - $magnitude mag.\nStart: $delay seconds and Stop: $delayStop seconds"
-                                }
-                                scope.launch {
+                                mainScope.launch {
+                                    isRunning = true
+                                    showResults = true
+                                    val commandList = mutableListOf<String>()
+                                    val sortedIndices = timers.indices.sortedBy { timers[it] }
+                                    val sortedIndicesend = timersend.indices.sortedBy { timersend[it] }
+                                    var looptext = looptext.toInt() // Define the loop limit as 20 instead of 10
+                                    val motorStartTimes =
+                                        sortedIndices.associateWith { timers[it] } // Map index to start time
+                                    val motorEndTimes =
+                                        sortedIndicesend.associateWith { timersend[it] } // Map index to start time
                                     while (isRunning) {
-                                        for (command in commandList) {
-                                            if (!isRunning) break
-                                            if (command.startsWith("WAIT")) {
-                                                val delayTime = command.split(" ")[1].toLongOrNull()
-                                                if (delayTime != null) {
-                                                    kotlinx.coroutines.delay(delayTime * 1000) // Just wait, don't send "WAIT"
+                                        for (time in 0..looptext) {
+                                            println("Time: ${time}s")
+                                            motorStartTimes.forEach { (index, start) ->
+                                                if (time == start) {
+                                                    val motorIndex =
+                                                        items[index].split(" ").last().toIntOrNull()?.minus(1) ?: 0
+                                                    val magnitude = magnitudes.getOrNull(index) ?: 1
+                                                    magnitudeString.value[motorIndex] = magnitude.digitToChar()
+                                                    val startCommand = String(magnitudeString.value)
+                                                    println("${items[index]} starts")
+                                                    println("write command : $startCommand")
+                                                     writeCommand(startCommand)
                                                 }
-                                            } else {
-                                                println("Sending command: $command")
-                                              //  writeCommand(command)
                                             }
+                                            motorEndTimes.forEach { (index, stop) ->
+                                                if (time == stop) {
+                                                    val motorIndex =
+                                                        items[index].split(" ").last().toIntOrNull()?.minus(1) ?: 0
+                                                    magnitudeString.value[motorIndex] =
+                                                        '0' // Reset to '0' when motor stops
+                                                    val stopCommand = String(magnitudeString.value)
+                                                    println("${items[index]} stops")
+                                                    println("Write stop command: $stopCommand")
+                                                    writeCommand(stopCommand)
+                                                }
+                                            }
+                                            delay(1000)
                                         }
                                     }
                                 }
@@ -433,3 +446,4 @@ fun PatternControl() {
         }
     }
 }
+

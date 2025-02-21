@@ -139,7 +139,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "PatternDevice") {
+    NavHost(navController = navController, startDestination = "device_connection") {
         composable("device_connection") {
             DeviceConnectionScreen(navController)
         }
