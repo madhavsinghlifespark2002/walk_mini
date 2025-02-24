@@ -104,3 +104,16 @@ fun ConnectDeviced(
         }
     }
 }
+suspend fun getValued(): List<Int>? {
+    return try {
+        val serverResponse = peripheral?.read(PeripheralManager.charRead!!)
+        val sameValue = serverResponse?.decodeToString()
+        println("This is sameValue: $sameValue")
+
+        sameValue?.map { it.digitToInt() } // Convert each character to an integer
+
+    } catch (e: Exception) {
+        println("Error while getting frequency: ${e.message}")
+        null
+    }
+}

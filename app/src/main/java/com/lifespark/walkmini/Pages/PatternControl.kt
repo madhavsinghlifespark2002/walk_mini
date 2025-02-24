@@ -1,5 +1,6 @@
 package com.lifespark.walkmini.Pages
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,17 +29,19 @@ import org.burnoutcrew.reorderable.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.res.painterResource
+import androidx.navigation.NavController
 import com.lifespark.walkmini.R
+import com.lifespark.walkmini.connectdevice.getValued
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PatternControl() {
+fun PatternControl(navController: NavController) {
     val initialItems = List(7) { "Motor ${it + 1}" }
     var items by remember { mutableStateOf(initialItems) }
     val magnitudes = remember { mutableStateListOf(*Array(items.size) { 1 }) }
-    val timers = remember { mutableStateListOf<Int?>(null, null, null, null, null, null, null) }
-    val timersend = remember { mutableStateListOf<Int?>(null, null, null, null, null, null, null) }
+    val timers = remember { mutableStateListOf<String>("", "", "", "", "", "", "") }
+    val timersend = remember { mutableStateListOf<String>("", "", "", "", "", "", "") }
     var selectedItems by remember { mutableStateOf(setOf<String>()) }
     val focusManager = LocalFocusManager.current
     var showResults by remember { mutableStateOf(false) }
@@ -50,6 +53,39 @@ fun PatternControl() {
     var looptext by remember { mutableStateOf("") }
     val motorActivation = remember { mutableStateOf(CharArray(7) { '0' }) }
     val magnitudeString = remember { mutableStateOf(CharArray(7) { '0' }) }
+    var showDialog by remember { mutableStateOf(false) }
+    BackHandler {
+        showDialog = true
+    }
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("Confirm Exit") },
+            text = { Text("Are you sure you want to go back?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDialog = false
+                    looptext = ""
+                    items = initialItems
+                    magnitudes.clear()
+                    magnitudes.addAll(List(items.size) { 1 })
+                    timers.clear()
+                    timers.addAll(List(items.size) { "" })
+                    timersend.clear()
+                    timersend.addAll(List(items.size)  { "" })
+                    isRunning = false
+                    navController.popBackStack()
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("No")
+                }
+            }
+        )
+    }
 
     val reorderState = rememberReorderableLazyListState(
         onMove = { from, to ->
@@ -92,7 +128,37 @@ fun PatternControl() {
         ) {
             Column(modifier = Modifier.padding(12.dp)
             ){
-                Text("Set the pattern", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ){
+                    Text("Set the pattern", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    Button(
+                        onClick = {
+                            looptext = ""
+                            items = initialItems
+                            magnitudes.clear()
+                            magnitudes.addAll(List(items.size) { 1 })
+                            timers.clear()
+                            timers.addAll(List(items.size) { "" })
+                            timersend.clear()
+                            timersend.addAll(List(items.size)  { "" })
+                            isRunning = false
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF960019)
+                        )
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.restart),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(18.dp)
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text("Ordered Items:", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Text("${items.joinToString()}", color = Color.Black)
@@ -115,16 +181,10 @@ fun PatternControl() {
                 OutlinedTextField(
                     value = looptext,
                     onValueChange = { newValue ->
-                        if (newValue.all { it.isDigit() } && newValue.length <= 3) {
+                        if (newValue.matches(Regex("^\\d*\\.?\\d{0,2}\$")) && newValue.length <= 4) {
                             looptext = newValue
-                            if(looptext.isNotEmpty()){
-                                isLoopEntered = true
-                            }
-                            else{
-                                isLoopEntered = false
-                            }
+                            isLoopEntered = looptext.isNotEmpty()
                         }
-
                     },
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Done,
@@ -140,7 +200,7 @@ fun PatternControl() {
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
                     ),
-                   // readOnly = isLoopEntered,
+                    // readOnly = isLoopEntered,
                     placeholder = { Text("Seconds") },
                     modifier = Modifier
 //                        .fillMaxWidth(0.45f)
@@ -236,39 +296,39 @@ fun PatternControl() {
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = 12.dp, vertical = 8.dp),
-                                       // horizontalArrangement = Arrangement.Center,
+                                        // horizontalArrangement = Arrangement.Center,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Column{
                                             Text(text = "Start", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                                             Spacer(modifier = Modifier.height(8.dp))
                                             OutlinedTextField(
-                                                value = timers.getOrElse(index) { null }?.toString() ?: "",
+                                                value = timers.getOrElse(index) { "" },
                                                 onValueChange = { newValue ->
-                                                    val loopMax = looptext.toIntOrNull() ?: Int.MAX_VALUE
-                                                    if (newValue.all { it.isDigit() } && newValue.length <= 3) {
-                                                        val newTimer = newValue.toIntOrNull()
-                                                        if (newTimer != null && newTimer in 1..loopMax) {
-                                                            while (index >= timers.size) {  // Ensure list is large enough
-                                                                timers.add(null)
+                                                    val loopMax = looptext.toFloatOrNull() ?: Float.MAX_VALUE
+                                                    if (newValue.matches(Regex("^\\d*\\.?\\d{0,2}\$")) && newValue.length <= 4) {
+                                                        if (newValue == "." || newValue == "") {
+                                                            if (index in timers.indices) {
+                                                                timers[index] = newValue // Allow "." but don't convert to Float
                                                             }
-                                                            timers[index] = newTimer  // ✅ Direct modification
-                                                        } else if (newValue.isEmpty()) {
-                                                            if (index < timers.size) {
-                                                                timers[index] = null  // ✅ Allow clearing
+                                                        } else {
+                                                            val newTimer = newValue.toFloatOrNull()
+                                                            if (newTimer != null && newTimer in 0f..loopMax) {
+                                                                if (index in timers.indices) {
+                                                                    timers[index] = newValue
+                                                                }
                                                             }
                                                         }
                                                     }
                                                 },
-                                              //  readOnly = !isLoopEntered,
                                                 keyboardOptions = KeyboardOptions.Default.copy(
                                                     imeAction = ImeAction.Done,
                                                     keyboardType = KeyboardType.Number
                                                 ),
                                                 keyboardActions = KeyboardActions(
-                                                    onDone = { focusManager.clearFocus() } // Remove focus when "Done" is pressed
+                                                    onDone = { focusManager.clearFocus() }
                                                 ),
-                                                colors =  TextFieldDefaults.textFieldColors(
+                                                colors = TextFieldDefaults.textFieldColors(
                                                     containerColor = Color(0xFFf2f4f5),
                                                     focusedIndicatorColor = Color.Transparent,
                                                     unfocusedIndicatorColor = Color.Transparent
@@ -290,26 +350,25 @@ fun PatternControl() {
                                             )
                                             Spacer(modifier = Modifier.height(8.dp))
                                             OutlinedTextField(
-                                                value = timersend.getOrElse(index) { null }?.toString() ?: "",
+                                                value = timersend.getOrElse(index) { "" },
                                                 onValueChange = { newValue ->
-                                                    val loopMax = looptext.toIntOrNull() ?: Int.MAX_VALUE
-                                                    if (newValue.all { it.isDigit() } && newValue.length <= 3) {
-                                                        val newTimerSend = newValue.toIntOrNull()
-                                                        val startTime = timers.getOrElse(index) { null } ?: 0  // Default Start to 0 if null
-
-                                                      if (newTimerSend != null && newTimerSend <= loopMax) {
-                                                            while (index >= timersend.size) {  // Ensure list has enough indices
-                                                                timersend.add(null)
+                                                    val loopMax = looptext.toFloatOrNull() ?: Float.MAX_VALUE
+                                                    if (newValue.matches(Regex("^\\d*\\.?\\d{0,2}\$")) && newValue.length <= 4) {
+                                                        if (newValue == "." || newValue == "") {
+                                                            if (index in timersend.indices) {
+                                                                timersend[index] = newValue // Allow "." but don't convert to Float
                                                             }
-                                                            timersend[index] = newTimerSend  // ✅ Direct modification
-                                                        } else if (newValue.isEmpty()) {
-                                                            if (index < timersend.size) {
-                                                                timersend[index] = null  // ✅ Allow clearing
+                                                        } else {
+                                                            val newTimer = newValue.toFloatOrNull()
+                                                            if (newTimer != null && newTimer in 0f..loopMax) {
+                                                                if (index in timersend.indices) {
+                                                                    timersend[index] = newValue
+                                                                }
                                                             }
                                                         }
                                                     }
                                                 },
-                                              //  readOnly = !isLoopEntered,
+                                                //  readOnly = !isLoopEntered,
                                                 keyboardOptions = KeyboardOptions.Default.copy(
                                                     imeAction = ImeAction.Done,
                                                     keyboardType = KeyboardType.Number
@@ -331,7 +390,9 @@ fun PatternControl() {
                                         }
                                     }
                                 }
-                                if ((timers.getOrElse(index) { null } ?: 0) > (timersend.getOrElse(index) { null } ?: Int.MAX_VALUE)) {
+                                val startTime = timers.getOrElse(index) { "0" }.toFloatOrNull() ?: 0f
+                                val endTime = timersend.getOrElse(index) { "0" }.toFloatOrNull() ?: 0f
+                                if (startTime > endTime) {
                                     isLoopEntered = false
                                     Text(
                                         text = "Error: Start time cannot be greater than end time",
@@ -339,8 +400,7 @@ fun PatternControl() {
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
                                     )
-                                }
-                                else{
+                                } else {
                                     isLoopEntered = true
                                 }
                             }
@@ -348,33 +408,8 @@ fun PatternControl() {
 
                     }
                 }
-
-
             }
             item{
-                if (showResults) {
-                    Card(
-                        Modifier.fillMaxWidth().padding(12.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)){
-                            Text(
-                                "Ordered Pattern:",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            results.forEach { result ->
-                                Text(
-                                    result,
-                                    fontSize = 14.sp,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
-                            }
-                        }
-                    }
-                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -388,48 +423,62 @@ fun PatternControl() {
                                 mainScope.launch {
                                     isRunning = true
                                     showResults = true
-                                    val commandList = mutableListOf<String>()
                                     val sortedIndices = timers.indices.sortedBy { timers[it] }
                                     val sortedIndicesend = timersend.indices.sortedBy { timersend[it] }
-                                    var looptext = looptext.toInt() // Define the loop limit as 20 instead of 10
+                                    println("this sorted list: ${sortedIndices}")
+                                    println("this sorted list end: ${sortedIndicesend}")
+                                 //   var looptext = looptext.toFloat()
                                     val motorStartTimes =
-                                        sortedIndices.associateWith { timers[it] } // Map index to start time
+                                        sortedIndices.associateWith { timers[it] }
                                     val motorEndTimes =
-                                        sortedIndicesend.associateWith { timersend[it] } // Map index to start time
+                                        sortedIndicesend.associateWith { timersend[it] }
+                                    println("this motorStartTimes list: ${motorStartTimes}")
+                                    println("this motorEndTimes list: ${motorEndTimes}")
                                     while (isRunning) {
-                                        for (time in 0..looptext) {
-                                            println("Time: ${time}s")
+                                        var time = 0.0
+
+                                        val loopTime = looptext.toFloat()
+
+                                        while (time < loopTime) {
+                                            println("Time: ${"%.1f".format(time)}s")
                                             motorStartTimes.forEach { (index, start) ->
-                                                if (time == start) {
-                                                    val motorIndex =
-                                                        items[index].split(" ").last().toIntOrNull()?.minus(1) ?: 0
+                                                if (time.toFloat() == start!!.toFloat()) { // Handling floating-point comparison
+                                                    val motorIndex = items[index].split(" ").last().toIntOrNull()?.minus(1) ?: 0
                                                     val magnitude = magnitudes.getOrNull(index) ?: 1
                                                     magnitudeString.value[motorIndex] = magnitude.digitToChar()
                                                     val startCommand = String(magnitudeString.value)
                                                     println("${items[index]} starts")
-                                                    println("write command : $startCommand")
-                                                     writeCommand(startCommand)
+                                                    println("Write command: $startCommand")
+                                                    writeCommand(startCommand)
                                                 }
                                             }
+
                                             motorEndTimes.forEach { (index, stop) ->
-                                                if (time == stop) {
-                                                    val motorIndex =
-                                                        items[index].split(" ").last().toIntOrNull()?.minus(1) ?: 0
-                                                    magnitudeString.value[motorIndex] =
-                                                        '0' // Reset to '0' when motor stops
+                                                if (time.toFloat() == stop!!.toFloat()) { // Handling floating-point comparison
+                                                    val motorIndex = items[index].split(" ").last().toIntOrNull()?.minus(1) ?: 0
+                                                    magnitudeString.value[motorIndex] = '0' // Reset motor to '0'
                                                     val stopCommand = String(magnitudeString.value)
                                                     println("${items[index]} stops")
                                                     println("Write stop command: $stopCommand")
                                                     writeCommand(stopCommand)
                                                 }
                                             }
-                                            delay(1000)
+                                            delay(100)
+                                            time += 0.1
                                         }
                                     }
                                 }
                             }
                         },
-                        enabled =  isLoopEntered,
+                        enabled =
+                            isLoopEntered &&
+                                    items.isNotEmpty() &&
+                                    timers.all { it.trim() != null && it.toString() != "." } &&
+                                    timersend.all {
+                                        val value = it.trim()
+                                        value.isNotEmpty() && value != "." && value.toFloatOrNull() != null && value.toFloat() != 0f
+                                    } &&
+                                    looptext.trim().isNotEmpty() && looptext != "." && looptext.toFloatOrNull() != null && looptext.toFloat() != 0f,
                         modifier = Modifier.fillMaxWidth(0.925f).height(45.dp),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.textButtonColors(
@@ -447,4 +496,16 @@ fun PatternControl() {
         }
     }
 }
-
+//onValueChange = { newValue ->
+//                                                    val loopMax = looptext.toFloatOrNull() ?: Float.MAX_VALUE
+//                                                    if (newValue.matches(Regex("^\\d*\\.?\\d{0,2}\$")) && newValue.length <= 4) {
+//                                                        val newTimer = newValue
+//                                                       /// if (newTimer != null && newTimer in 0f..loopMax) {
+//                                                      //      if (index in timers.indices) {
+//                                                                timers[index] = newTimer
+//                                                       ///     }
+////                                                        } else if (newValue.isEmpty() && index in timers.indices) {
+////                                                            timers[index] = 0f
+////                                                        }
+//                                                    }
+//                                                },

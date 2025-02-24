@@ -19,17 +19,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.lifespark.walkmini.Component.AppNavigation
 import com.lifespark.walkmini.Pages.DeviceControlScreen
 import com.lifespark.walkmini.Pages.ModeDevice
 import com.lifespark.walkmini.Pages.PatternControl
 import com.lifespark.walkmini.ui.theme.WalkminiTheme
 import com.lifesparktech.lsphysio.android.pages.DeviceConnectionScreen
+import com.lifesparktech.lsphysio.android.pages.PeripheralManager
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -135,22 +138,4 @@ class MainActivity : ComponentActivity() {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 2
     }
 }
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-fun AppNavigation() {
-    val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "PatternDevice") {
-        composable("device_connection") {
-            DeviceConnectionScreen(navController)
-        }
-        composable("DeviceControlScreen") {
-            DeviceControlScreen(navController)
-        }
-        composable("ModeDevice") {
-            ModeDevice(navController)
-        }
-        composable("PatternDevice") {
-            PatternControl()
-        }
-    }
-}
+

@@ -26,16 +26,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Switch
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
+import com.lifespark.walkmini.connectdevice.getValued
 import com.lifesparktech.lsphysio.android.pages.PeripheralManager
 import com.lifesparktech.lsphysio.android.pages.PeripheralManager.Command
 
 @Composable
 fun DeviceControlScreen(navController: NavController){
     val toggleStates = remember { mutableStateListOf(*Array(7) { false }) }
-    val magnitudes = remember { mutableStateListOf(*Array(7) { 1 }) }
+    var magnitudes = remember { mutableStateListOf(*Array(7) { 1 }) }
 //    var command by remember { mutableStateOf("1111111") }
-
+    LaunchedEffect(Unit) {
+        val newValues = getValued()
+        println(newValues)
+        if (!newValues.isNullOrEmpty()) {
+            newValues.forEachIndexed { i, value ->
+                magnitudes[i] = if (value == 0) 1 else value  // Replace 0 with 1
+                toggleStates[i] = if (value == 0) false else true
+//                toggleStates[i] = magnitudes[i] > 0
+            }
+        }
+    }
     Column(
         modifier = Modifier.background(color = Color.White)
             .fillMaxSize()
@@ -66,9 +78,6 @@ fun DeviceControlScreen(navController: NavController){
                         checked = toggleStates[index],
                         onCheckedChange = { isChecked ->
                             toggleStates[index] = isChecked
-
-                           // sendMagnitudeCommand(index, magnitudes[index])
-                            println("isChecked : $isChecked")
                             if (isChecked) {
                                 sendMagnitudeCommand(index, magnitudes[index])
                             }
