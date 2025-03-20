@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.lifespark.walkmini.Pages.DeviceControlScreen
 import com.lifespark.walkmini.Pages.ModeDevice
+import com.lifespark.walkmini.Pages.NewDeviceControlScreen
 import com.lifespark.walkmini.Pages.PatternControl
 import com.lifesparktech.lsphysio.android.pages.DeviceConnectionScreen
 import com.lifesparktech.lsphysio.android.pages.PeripheralManager
@@ -32,8 +33,12 @@ fun AppNavigation() {
 
         }
         composable("DeviceControlScreen") {
-            DeviceControlScreen(navController)
+            DeviceControlScreen()
         }
+        composable("newDeviceControlScreen") {
+            NewDeviceControlScreen()
+        }
+
         composable("ModeDevice") {
             ModeDevice(navController)
         }

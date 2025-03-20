@@ -27,7 +27,7 @@ fun ModeDevice(navController: NavController){
     ){
         Card(
             Modifier.fillMaxWidth().padding(12.dp).clickable{
-                navController.navigate("DeviceControlScreen")
+                navController.navigate("newDeviceControlScreen")
             },
             elevation = CardDefaults.cardElevation(4.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)

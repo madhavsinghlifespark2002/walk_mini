@@ -33,7 +33,7 @@ import com.lifesparktech.lsphysio.android.pages.PeripheralManager
 import com.lifesparktech.lsphysio.android.pages.PeripheralManager.Command
 
 @Composable
-fun DeviceControlScreen(navController: NavController){
+fun DeviceControlScreen(){
     val toggleStates = remember { mutableStateListOf(*Array(7) { false }) }
     var magnitudes = remember { mutableStateListOf(*Array(7) { 1 }) }
 //    var command by remember { mutableStateOf("1111111") }
@@ -122,6 +122,7 @@ fun DeviceControlScreen(navController: NavController){
         }
     }
 }
+
 fun sendBinaryCommand(toggleStates: List<Boolean>) {
     val binaryString = toggleStates.joinToString("") { if (it) "1" else "0" }
     println("this is binaryString: $binaryString")
