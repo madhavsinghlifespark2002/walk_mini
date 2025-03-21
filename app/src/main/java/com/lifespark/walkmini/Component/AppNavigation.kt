@@ -18,7 +18,7 @@ import com.lifesparktech.lsphysio.android.pages.PeripheralManager
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "newDeviceControlScreen") {
+    NavHost(navController = navController, startDestination = "device_connection") {
         composable("device_connection") {
             if (PeripheralManager.peripheral != null) {
                 LaunchedEffect(Unit) {

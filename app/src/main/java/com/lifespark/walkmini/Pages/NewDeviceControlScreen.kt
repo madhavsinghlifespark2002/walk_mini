@@ -30,6 +30,7 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,255 +41,109 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.lifespark.walkmini.connectdevice.getValued
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun NewDeviceControlScreen(){
-    val isOnList = remember { mutableStateListOf(false, false, false, false, false, false, false) }
-    var selectedMag by remember { mutableStateOf(0) }
-    val colors = listOf("1", "1", "3", "4")
+    val isOnList = remember { mutableStateOf(List(7) { false }) }
+    var selectedMag by remember { mutableStateOf(-1) }
+    val colors = listOf("1", "2", "3", "4")
     val colorsDetails = listOf("70\n0.3g", "100\n0.6g", "140\n0.9g", "180\n1.2g")
-    val toggleStates = remember { mutableStateListOf(*Array(7) { false }) }
     var magnitudes = remember { mutableStateListOf(*Array(7) { 1 }) }
     var selectedTabIndex by remember { mutableStateOf(0) }
     var selectedTabMag by remember { mutableStateOf(0) }
     val tabTitles = listOf("1", "2", "3", "4", "5", "6", "7")
+    var scope = rememberCoroutineScope()
+    var enableAll by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         val newValues = getValued()
+        selectedTabMag = newValues?.get(0) ?: 0
+        selectedMag = if (selectedTabMag in 1..4) selectedTabMag - 1 else -1
         println(newValues)
         if (!newValues.isNullOrEmpty()) {
             newValues.forEachIndexed { i, value ->
-                magnitudes[i] = if (value == 0) 1 else value  // Replace 0 with 1
-                toggleStates[i] = if (value == 0) false else true
+                magnitudes[i] = if (value == 0) 1 else value
             }
+            isOnList.value = newValues.map { it != 0 }
         }
     }
     Scaffold(
         modifier = Modifier.fillMaxSize().padding(12.dp),
-    ){
+    ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            item{
+        ) {
+            item {
                 Card(
                     modifier = Modifier.fillMaxWidth().height(350.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = Color(0xFFE5E9E1)
                     ),
                     elevation = CardDefaults.cardElevation(2.dp)
-                ){
+                ) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
-                    ){
-                        Row{
-                            Box(
-                                modifier = Modifier
-                                    .size(50.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isOnList[0]) Color(0xff376A3E) else Color.Transparent)
-                                    .border(2.dp, if (isOnList[0]) Color.Transparent else Color(0xff376A3E), CircleShape)
-                                    .clickable {
-                                        isOnList[0] = !isOnList[0]
-                                        if (isOnList[0]) {
-                                            sendMagnitudeCommand(0, magnitudes[0])
-                                        }
-                                        else{
-                                            sendMagnitudeCommand(0, 0)
-                                        } },
-                                contentAlignment = Alignment.Center
-                            ){
-                                Text(
-                                    text = "1",
-                                    color = if (isOnList[0]) Color.White else Color(0xff376A3E)
-                                )
-                            }
+                    ) {
+                        Row {
+                            BoxWithNumber(0, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope)
                             Spacer(modifier = Modifier.width(12.dp))
-                            Box(
-                                modifier = Modifier
-                                    .size(50.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isOnList[1]) Color(0xff376A3E) else Color.Transparent)
-                                    .border(2.dp, if (isOnList[1]) Color.Transparent else Color(0xff376A3E), CircleShape)
-                                    .clickable {
-                                        isOnList[1] = !isOnList[1]
-                                        if (isOnList[1]) {
-                                            sendMagnitudeCommand(1, magnitudes[1])
-                                        }
-                                        else{
-                                            sendMagnitudeCommand(1, 0)
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ){
-                                Text(
-                                    text = "2",
-                                    color = if (isOnList[1]) Color.White else Color(0xff376A3E)
-                                )
-                            }
+                            BoxWithNumber(1, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope)
                             Spacer(modifier = Modifier.width(12.dp))
                         }
                         Column(
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
-                        ){
-                            Box(
-                                modifier = Modifier
-                                    .width(75.dp).height(45.dp)
-                                    .clip(RectangleShape)
-                                    .background(if (isOnList[2]) Color(0xff376A3E) else Color.Transparent)
-                                    .border(
-                                        2.dp,
-                                        if (isOnList[2]) Color.Transparent
-                                        else Color(0xff376A3E),
-                                        RectangleShape
-                                    )
-                                    .clickable {
-                                        isOnList[2] = !isOnList[2]
-                                        if (isOnList[2]) {
-                                            sendMagnitudeCommand(2, magnitudes[2])
-                                        }
-                                        else{
-                                            sendMagnitudeCommand(2, 0)
-                                        } },
-                                contentAlignment = Alignment.Center
-                            ){
-                                Text(
-                                    text = "3",
-                                    color = if (isOnList[2]) Color.White else Color(0xff376A3E)
-                                )
-                            }
+                        ) {
+                            BoxWithNumber(2, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope, isRectangle = true)
                             Spacer(modifier = Modifier.height(12.dp))
-                            Box(
-                                modifier = Modifier
-                                    .width(75.dp).height(45.dp)
-                                    .clip(RectangleShape)
-                                    .background(if (isOnList[3]) Color(0xff376A3E) else Color.Transparent)
-                                    .border(
-                                        2.dp,
-                                        if (isOnList[3]) Color.Transparent
-                                        else Color(0xff376A3E),
-                                        RectangleShape
-                                    )
-                                    .clickable {
-                                        isOnList[3] = !isOnList[3]
-                                        if (isOnList[3]) {
-                                            sendMagnitudeCommand(3, magnitudes[3])
-                                        }
-                                        else{
-                                            sendMagnitudeCommand(3, 0)
-                                        } },
-                                contentAlignment = Alignment.Center
-                            ){
-                                Text(
-                                    text = "4",
-                                    color = if (isOnList[3]) Color.White else Color(0xff376A3E)
-                                )
-                            }
+                            BoxWithNumber(3, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope, isRectangle = true)
                             Spacer(modifier = Modifier.height(12.dp))
-                            Box(
-                                modifier = Modifier
-                                    .width(75.dp).height(45.dp)
-                                    .clip(RectangleShape)
-                                    .background(if (isOnList[4]) Color(0xff376A3E) else Color.Transparent)
-                                    .border(
-                                        2.dp,
-                                        if (isOnList[4]) Color.Transparent
-                                        else Color(0xff376A3E),
-                                        RectangleShape
-                                    )
-                                    .clickable {
-                                        isOnList[4] = !isOnList[4]
-                                        if (isOnList[4]) {
-                                            sendMagnitudeCommand(4, magnitudes[4])
-                                        }
-                                        else{
-                                            sendMagnitudeCommand(4, 0)
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ){
-                                Text(
-                                    text = "5",
-                                    color = if (isOnList[4]) Color.White else Color(0xff376A3E)
-                                )
-                            }
+                            BoxWithNumber(4, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope, isRectangle = true)
                         }
-                        Row{
+                        Row {
                             Spacer(modifier = Modifier.width(12.dp))
-                            Box(
-                                modifier = Modifier
-                                    .size(50.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isOnList[5]) Color(0xff376A3E) else Color.Transparent)
-                                    .border(2.dp, if (isOnList[5]) Color.Transparent else Color(0xff376A3E), CircleShape)
-                                    .clickable {
-                                        isOnList[5] = !isOnList[5]
-                                        if (isOnList[5]) {
-                                            sendMagnitudeCommand(5, magnitudes[5])
-                                        }
-                                        else{
-                                            sendMagnitudeCommand(5, 0)
-                                        } },
-                                contentAlignment = Alignment.Center
-                            ){
-                                Text(
-                                    text = "6",
-                                    color = if (isOnList[5]) Color.White else Color(0xff376A3E)
-                                )
-                            }
+                            BoxWithNumber(5, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope)
                             Spacer(modifier = Modifier.width(12.dp))
-                            Box(
-                                modifier = Modifier
-                                    .size(50.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isOnList[6]) Color(0xff376A3E) else Color.Transparent)
-                                    .border(2.dp, if (isOnList[6]) Color.Transparent else Color(0xff376A3E), CircleShape)
-                                    .clickable {
-                                        isOnList[6] = !isOnList[6]
-                                        if (isOnList[6]) {
-                                            sendMagnitudeCommand(6, magnitudes[6])
-                                        }
-                                        else{
-                                            sendMagnitudeCommand(6, 0)
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ){
-                                Text(
-                                    text = "7",
-                                    color = if (isOnList[6]) Color.White else Color(0xff376A3E)
-                                )
-                            }
+                            BoxWithNumber(6, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope)
                         }
                     }
                 }
             }
-            item{
+            item {
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
-                    onClick = {},
+                    onClick = {
+                        enableAll = !enableAll
+                        val enableallBooleans = List(7) { enableAll }
+                        //val enableallBooleans = enableall.map { it == 1 }
+                        isOnList.value = enableallBooleans
+                        sendBinaryCommand(enableallBooleans)
+                    },
                     colors = ButtonDefaults.textButtonColors(
-                        containerColor = Color(0xff376A3E),
+                        containerColor = if (enableAll || isOnList.value.all { it }) Color(0xff7c0a02) else Color(0xff105749),
                         contentColor = Color.White,
                     ),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.width(200.dp),
 
                     ) {
-                    Text("Enable All", textAlign = TextAlign.Center)
+                    Text(if (enableAll || isOnList.value.all { it }) "Disable All" else "Enable All", textAlign = TextAlign.Center)
                 }
                 Spacer(modifier = Modifier.height(12.dp))
             }
-            item{
+            item {
                 Text(text = "Magnitude", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(12.dp))
                 TabRow(
@@ -296,7 +151,7 @@ fun NewDeviceControlScreen(){
                     indicator = { tabPositions ->
                         TabRowDefaults.Indicator(
                             Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                            color = Color(0xff376A3E)
+                            color = Color(0xff105749)
                         )
                     }
                 ) {
@@ -305,17 +160,24 @@ fun NewDeviceControlScreen(){
                             selected = selectedTabIndex == index,
                             onClick = {
                                 selectedTabIndex = index
+                                scope.launch{
+                                    var magn = getValued()
+                                    selectedTabMag = magn?.get(index) ?: 0
+                                    selectedMag = if (selectedTabMag in 1..4) selectedTabMag - 1 else -1
+                                }
                             },
-                            text = { Text(
-                                text = title,
-                                color = if (selectedTabIndex == index) Color(0xff376A3E) else Color.Gray
-                            ) }
+                            text = {
+                                Text(
+                                    text = title,
+                                    color = if (selectedTabIndex == index) Color(0xff105749) else Color.Gray
+                                )
+                            }
                         )
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
             }
-            item{
+            item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center
@@ -326,21 +188,20 @@ fun NewDeviceControlScreen(){
                                 modifier = Modifier
                                     .size(50.dp)
                                     .clip(CircleShape)
-                                    .background(if (selectedMag == index) Color(0xff376A3E) else Color.Transparent)
-                                    .border(2.dp, if (selectedMag == index) Color.Transparent else Color(0xff376A3E), CircleShape)
+                                    .background(if (selectedMag == index) Color(0xff105749) else Color.Transparent)
+                                    .border(2.dp, if (selectedMag == index) Color.Transparent else Color(0xff105749), CircleShape)
                                     .clickable {
                                         selectedMag = index
-                                        if (!toggleStates[index]) {
-                                            toggleStates[index] = true
-                                            sendBinaryCommand(toggleStates)
+                                        isOnList.value = isOnList.value.toMutableList().apply {
+                                            this[selectedTabIndex] = true
                                         }
-                                        sendMagnitudeCommand(index, index)
+                                        sendMagnitudeCommand(selectedTabIndex, index + 1)
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = text,
-                                    color = if (selectedMag == index) Color.White else Color(0xff376A3E)
+                                    color = if (selectedMag == index) Color.White else Color(0xff105749)
                                 )
                             }
                             Spacer(modifier = Modifier.height(8.dp)) // Spacing between box and text
@@ -350,9 +211,52 @@ fun NewDeviceControlScreen(){
                     }
                 }
             }
-
-
         }
-
     }
 }
+
+
+@Composable
+fun BoxWithNumber(
+    index: Int,
+    isOnList: MutableState<List<Boolean>>,
+    selectedTabIndex: Int,
+    magnitudes: List<Int>,
+    selectedTabMag: Int,
+    selectedMag: Int,
+    scope: CoroutineScope,
+    isRectangle: Boolean = false
+) {
+    val shape = if (isRectangle) RectangleShape else CircleShape
+    val sizeModifier = if (isRectangle) Modifier.size(width = 75.dp, height = 45.dp) else Modifier.size(50.dp)
+    Box(
+        modifier = sizeModifier
+            .clip(shape)
+            .background(if (isOnList.value[index]) Color(0xff105749) else Color.Transparent)
+            .border(
+                4.dp,
+                if (selectedTabIndex == index) Color.Red else if (isOnList.value[index]) Color.Transparent else Color(0xff105749),
+                shape
+            )
+            .clickable {
+                val newList = isOnList.value.toMutableList()
+                newList[index] = !newList[index]
+                isOnList.value = newList
+                if (isOnList.value[index]) {
+                    sendMagnitudeCommand(index, magnitudes[index])
+                    selectedMag = 1
+                } else {
+                    sendMagnitudeCommand(index, 0)
+                }
+
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = (index + 1).toString(),
+            color = if (isOnList.value[index]) Color.White else Color(0xff105749)
+        )
+    }
+}
+// 1. on tab change related should be shown mag should show: done.
+// 2.
