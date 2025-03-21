@@ -65,10 +65,10 @@ fun NewDeviceControlScreen(){
     var enableAll by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         val newValues = getValued()
-        selectedTabMag = newValues?.get(0) ?: 0
-        selectedMag = if (selectedTabMag in 1..4) selectedTabMag - 1 else -1
-        println(newValues)
         if (!newValues.isNullOrEmpty()) {
+            selectedTabMag = newValues?.get(0) ?: 0
+            selectedMag = if (selectedTabMag in 1..4) selectedTabMag - 1 else -1
+            println(newValues)
             newValues.forEachIndexed { i, value ->
                 magnitudes[i] = if (value == 0) 1 else value
             }
@@ -96,27 +96,33 @@ fun NewDeviceControlScreen(){
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Row {
-                            BoxWithNumber(0, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            BoxWithNumber(1, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope)
-                            Spacer(modifier = Modifier.width(12.dp))
-                        }
-                        Column(
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
                         ) {
-                            BoxWithNumber(2, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope, isRectangle = true)
-                            Spacer(modifier = Modifier.height(12.dp))
-                            BoxWithNumber(3, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope, isRectangle = true)
-                            Spacer(modifier = Modifier.height(12.dp))
-                            BoxWithNumber(4, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope, isRectangle = true)
-                        }
-                        Row {
-                            Spacer(modifier = Modifier.width(12.dp))
-                            BoxWithNumber(5, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            BoxWithNumber(6, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope)
+                            Row {
+                                BoxWithNumber(0, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope) { selectedMag = it }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                BoxWithNumber(1, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope) { selectedMag = it }
+                                Spacer(modifier = Modifier.width(12.dp))
+                            }
+                            Column(
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                BoxWithNumber(2, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope, isRectangle = true) { selectedMag = it }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                BoxWithNumber(3, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope, isRectangle = true) { selectedMag = it }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                BoxWithNumber(4, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope, isRectangle = true) { selectedMag = it }
+                            }
+                            Row {
+                                Spacer(modifier = Modifier.width(12.dp))
+                                BoxWithNumber(5, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope) { selectedMag = it }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                BoxWithNumber(6, isOnList, selectedTabIndex, magnitudes, selectedTabMag, selectedMag, scope) { selectedMag = it }
+                            }
                         }
                     }
                 }
@@ -225,7 +231,8 @@ fun BoxWithNumber(
     selectedTabMag: Int,
     selectedMag: Int,
     scope: CoroutineScope,
-    isRectangle: Boolean = false
+    isRectangle: Boolean = false,
+    onSelectedMagChange: (Int) -> Unit
 ) {
     val shape = if (isRectangle) RectangleShape else CircleShape
     val sizeModifier = if (isRectangle) Modifier.size(width = 75.dp, height = 45.dp) else Modifier.size(50.dp)
@@ -244,9 +251,10 @@ fun BoxWithNumber(
                 isOnList.value = newList
                 if (isOnList.value[index]) {
                     sendMagnitudeCommand(index, magnitudes[index])
-                    selectedMag = 1
+                    onSelectedMagChange(0)
                 } else {
                     sendMagnitudeCommand(index, 0)
+                    onSelectedMagChange(-1)
                 }
 
             },
