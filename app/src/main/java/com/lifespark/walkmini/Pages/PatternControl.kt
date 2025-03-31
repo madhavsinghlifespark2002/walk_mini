@@ -43,6 +43,11 @@ import com.lifesparktech.lsphysio.android.pages.PeripheralManager
 import kotlinx.coroutines.delay
 import com.google.firebase.firestore.FirebaseFirestore
 import com.lifespark.walkmini.Controller.Pattern
+import com.lifesparktech.lsphysio.android.pages.PeripheralManager.charRead
+import com.lifesparktech.lsphysio.android.pages.PeripheralManager.charWrite
+import com.lifesparktech.lsphysio.android.pages.PeripheralManager.peripheral
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,11 +79,32 @@ fun PatternControl(navController: NavController) {
     var nameofMode by remember { mutableStateOf("") }
     var patterns = remember { mutableStateOf<List<Pattern>>(emptyList()) }
     var context = LocalContext.current
+    var BandStatus by remember { mutableStateOf("no Status") }
+    var BandStatusBool by remember { mutableStateOf(false) }
     BackHandler {
         showDialog = true
     }
-
     val db = FirebaseFirestore.getInstance()
+    fun fetchPatterns(patientId: String, onPatternsFetched: (List<Pattern>) -> Unit) {
+        db.collection("patients").document(patientId)
+            .collection("patterns")
+            .orderBy("timestamp") // Orders by time if needed
+            .get()
+            .addOnSuccessListener { documents ->
+                val patterns = documents.map { doc ->
+                    Pattern(
+                        motors = doc["motors"] as List<Map<String, Any>>,
+                        loopTime = doc["loopTime"] as String,
+                        nameofMode = doc["nameofMode"] as? String ?: "",
+                        timestamp = doc["timestamp"]
+                    )
+                }
+                onPatternsFetched(patterns) // Pass fetched data to the callback
+            }
+            .addOnFailureListener { e ->
+                Log.e("Firestore", "Error fetching patterns: ${e.message}")
+            }
+    }
     fun savePattern() {
         val patientId = patient.id // Assuming your Patient object has an 'id' field
         val patientName = patient.name
@@ -111,29 +137,29 @@ fun PatternControl(navController: NavController) {
             .addOnFailureListener { e ->
                 println("Error saving pattern: ${e.message}")
             }
+        if (patient.id.isNotEmpty()) { // Ensure patient ID is valid before fetching patterns
+            fetchPatterns(patient.id) { fetchedPatterns ->
+                patterns.value = fetchedPatterns
+            }
+        }
     }
-
-    fun fetchPatterns(patientId: String, onPatternsFetched: (List<Pattern>) -> Unit) {
-        db.collection("patients").document(patientId)
-            .collection("patterns")
-            .orderBy("timestamp") // Orders by time if needed
-            .get()
-            .addOnSuccessListener { documents ->
-                val patterns = documents.map { doc ->
-                    Pattern(
-                        motors = doc["motors"] as List<Map<String, Any>>,
-                        loopTime = doc["loopTime"] as String,
-                        nameofMode = doc["nameofMode"] as? String ?: "",
-                        timestamp = doc["timestamp"]
-                    )
+    fun trackDeviceStatus() {
+        peripheral?.state?.onEach { state ->
+            println("Band State: $state")
+            BandStatus = state.toString()
+            if(BandStatus == "Disconnected(Timeout)"){
+                BandStatusBool = true
+                peripheral = null
+                charWrite = null
+                charRead = null
+                navController.navigate("device_connection"){
+                    popUpTo(0) { inclusive = true } // Pops all destinations
                 }
-                onPatternsFetched(patterns) // Pass fetched data to the callback
             }
-            .addOnFailureListener { e ->
-                Log.e("Firestore", "Error fetching patterns: ${e.message}")
-            }
+        }?.launchIn(mainScope)
     }
     LaunchedEffect(patients.value, patient.id) {
+        trackDeviceStatus()
         if (patients.value.isEmpty()) {
             patients.value = fetchPatients()
         }
@@ -231,6 +257,7 @@ fun PatternControl(navController: NavController) {
                             timersend.clear()
                             timersend.addAll(List(items.size)  { "" })
                             isRunning = false
+                            nameofMode = ""
                         },
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -394,6 +421,21 @@ fun PatternControl(navController: NavController) {
                                                     pattern = option
                                                     selectedOptionpattern = option.nameofMode
                                                     expandedpattern = false
+                                                    looptext = option.loopTime
+                                                    nameofMode = option.nameofMode
+                                                    items = option.motors.map { it["motorName"] as? String ?: "Unknown Motor" }
+                                                    magnitudes.clear()
+                                                    magnitudes.addAll(option.motors.map {
+                                                        when (val magnitudeValue = it["magnitude"]) {
+                                                            is Long -> magnitudeValue.toInt() // Convert Long to Int
+                                                            is Int -> magnitudeValue
+                                                            else -> 1 // Default if missing
+                                                        }
+                                                    })
+                                                    timers.clear()
+                                                    timers.addAll(option.motors.map { (it["startTime"] as? String) ?: "" })
+                                                    timersend.clear()
+                                                    timersend.addAll(option.motors.map { (it["endTime"] as? String) ?: "" })
                                                 }
                                             )
 
@@ -404,9 +446,9 @@ fun PatternControl(navController: NavController) {
                     }
                 }
             }
+
             itemsIndexed(items, key = { index, _ -> index }) { index, item ->
                 val isSelected = item in selectedItems
-
                 ReorderableItem(reorderState, key = index) { isDragging ->
                     val elevation = if (isDragging) 8.dp else 4.dp
                     Surface(
@@ -695,13 +737,31 @@ fun PatternControl(navController: NavController) {
                 Spacer(modifier = Modifier.height(8.dp))
             }
             item{
-                OutlinedTextField(
-                    value = nameofMode,
-                    onValueChange = { nameofMode = it },
-                    label = { Text("Enter Mode Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(0.925f)
-                )
+                Card(
+                    Modifier.fillMaxWidth().padding(12.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(text = "Mode:", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        OutlinedTextField(
+                            value = nameofMode,
+                            onValueChange = { nameofMode = it },
+                            singleLine = true,
+                            placeholder = { Text("Enter Mode") },
+                            colors = TextFieldDefaults.textFieldColors(
+                                containerColor = Color(0xFFf2f4f5),
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            ),
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
             }
             item{

@@ -27,18 +27,44 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import com.lifespark.walkmini.connectdevice.getValued
 import com.lifesparktech.lsphysio.android.pages.PeripheralManager
 import com.lifesparktech.lsphysio.android.pages.PeripheralManager.Command
+import com.lifesparktech.lsphysio.android.pages.PeripheralManager.charRead
+import com.lifesparktech.lsphysio.android.pages.PeripheralManager.charWrite
+import com.lifesparktech.lsphysio.android.pages.PeripheralManager.peripheral
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun DeviceControlScreen(){
+fun DeviceControlScreen(navController: NavController){
     val toggleStates = remember { mutableStateListOf(*Array(7) { false }) }
     var magnitudes = remember { mutableStateListOf(*Array(7) { 1 }) }
 //    var command by remember { mutableStateOf("1111111") }
+    var BandStatus by remember { mutableStateOf("no Status") }
+    var BandStatusBool by remember { mutableStateOf(false) }
+    fun trackDeviceStatus() {
+        peripheral?.state?.onEach { state ->
+            println("Band State: $state")
+            BandStatus = state.toString()
+            if(BandStatus == "Disconnected(Timeout)"){
+                BandStatusBool = true
+                peripheral = null
+                charWrite = null
+                charRead = null
+                navController.navigate("device_connection"){
+                    popUpTo(0) { inclusive = true } // Pops all destinations
+                }
+            }
+        }?.launchIn(mainScope)
+    }
     LaunchedEffect(Unit) {
         val newValues = getValued()
+        trackDeviceStatus()
         println(newValues)
         if (!newValues.isNullOrEmpty()) {
             newValues.forEachIndexed { i, value ->
