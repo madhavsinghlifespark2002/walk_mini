@@ -7,6 +7,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.lifespark.walkmini.Pages.AddPatient
 import com.lifespark.walkmini.Pages.DeviceControlScreen
 import com.lifespark.walkmini.Pages.ModeDevice
 import com.lifespark.walkmini.Pages.NewDeviceControlScreen
@@ -30,7 +31,6 @@ fun AppNavigation() {
             else{
                 DeviceConnectionScreen(navController)
             }
-
         }
         composable("DeviceControlScreen") {
             DeviceControlScreen()
@@ -44,6 +44,9 @@ fun AppNavigation() {
         }
         composable("PatternDevice") {
             PatternControl(navController)
+        }
+        composable("addPatient") {
+            AddPatient()
         }
     }
 }

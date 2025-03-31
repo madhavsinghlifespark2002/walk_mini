@@ -26,6 +26,8 @@ import androidx.core.app.ActivityCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.FirebaseApp
+import com.google.firebase.firestore.FirebaseFirestore
 import com.lifespark.walkmini.Component.AppNavigation
 import com.lifespark.walkmini.Pages.DeviceControlScreen
 import com.lifespark.walkmini.Pages.ModeDevice
@@ -56,6 +58,7 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        FirebaseApp.initializeApp(this)
         enableEdgeToEdge()
         requestBluetoothPermissions()
         requestLocationPermissions()

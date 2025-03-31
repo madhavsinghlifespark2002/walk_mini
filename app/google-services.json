@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "577833628200",
+    "project_id": "walkmini",
+    "storage_bucket": "walkmini.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:577833628200:android:c8191491437482a5527b1d",
+        "android_client_info": {
+          "package_name": "com.lifespark.walkmini"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5k7JH5YflHefsA8Noc7EaS8ZEg_DLBtI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
