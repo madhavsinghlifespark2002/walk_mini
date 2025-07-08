@@ -33,7 +33,7 @@ fun AppNavigation() {
             }
         }
         composable("DeviceControlScreen") {
-            DeviceControlScreen()
+            DeviceControlScreen(navController)
         }
         composable("newDeviceControlScreen") {
             NewDeviceControlScreen()

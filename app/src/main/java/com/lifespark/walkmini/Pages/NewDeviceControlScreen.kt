@@ -56,13 +56,20 @@ fun NewDeviceControlScreen(){
     val isOnList = remember { mutableStateOf(List(7) { false }) }
     var selectedMag by remember { mutableStateOf(-1) }
     val colors = listOf("1", "2", "3", "4")
-    val colorsDetails = listOf("70\n0.3g", "100\n0.6g", "140\n0.9g", "180\n1.2g")
+    //val colorsDetails = listOf("70\n0.3g", "100\n0.6g", "140\n0.9g", "180\n1.2g")
     var magnitudes = remember { mutableStateListOf(*Array(7) { 1 }) }
     var selectedTabIndex by remember { mutableStateOf(0) }
     var selectedTabMag by remember { mutableStateOf(0) }
     val tabTitles = listOf("1", "2", "3", "4", "5", "6", "7")
     var scope = rememberCoroutineScope()
     var enableAll by remember { mutableStateOf(false) }
+    val isRect = selectedTabIndex in 2..4
+    val shape = if (isRect) RoundedCornerShape(8.dp) else CircleShape
+    val boxSize = if (isRect) Modifier.size(width = 60.dp, height = 40.dp) else Modifier.size(50.dp)
+    val defaultDetails = listOf("50\n0.036g", "100\n0.143g", "150\n0.323g", "200\n0.574g")
+    val rectDetails =  listOf("70\n0.3g", "100\n0.6g", "140\n0.9g", "180\n1.2g")
+    val activeDetails = if (isRect) rectDetails else defaultDetails
+
     LaunchedEffect(Unit) {
         val newValues = getValued()
         if (!newValues.isNullOrEmpty()) {
@@ -188,14 +195,14 @@ fun NewDeviceControlScreen(){
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    colors.zip(colorsDetails).forEachIndexed { index, (text, details) ->
+                    colors.zip(activeDetails).forEachIndexed { index, (text, details) ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Box(
-                                modifier = Modifier
+                                modifier = boxSize
                                     .size(50.dp)
-                                    .clip(CircleShape)
+                                    .clip(shape)
                                     .background(if (selectedMag == index) Color(0xff105749) else Color.Transparent)
-                                    .border(2.dp, if (selectedMag == index) Color.Transparent else Color(0xff105749), CircleShape)
+                                    .border(2.dp, if (selectedMag == index) Color.Transparent else Color(0xff105749), shape)
                                     .clickable {
                                         selectedMag = index
                                         isOnList.value = isOnList.value.toMutableList().apply {

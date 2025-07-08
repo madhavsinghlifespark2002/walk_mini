@@ -3,6 +3,7 @@ package com.lifespark.walkmini
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationManager
@@ -28,6 +29,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.juul.kable.Characteristic
+import com.juul.kable.Peripheral
 import com.lifespark.walkmini.Component.AppNavigation
 import com.lifespark.walkmini.Pages.DeviceControlScreen
 import com.lifespark.walkmini.Pages.ModeDevice
@@ -35,6 +38,7 @@ import com.lifespark.walkmini.Pages.PatternControl
 import com.lifespark.walkmini.ui.theme.WalkminiTheme
 import com.lifesparktech.lsphysio.android.pages.DeviceConnectionScreen
 import com.lifesparktech.lsphysio.android.pages.PeripheralManager
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -141,4 +145,3 @@ class MainActivity : ComponentActivity() {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 2
     }
 }
-
